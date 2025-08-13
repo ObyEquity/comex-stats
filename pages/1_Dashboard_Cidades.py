@@ -1,47 +1,53 @@
 import streamlit as st
 import pandas as pd
-from utils.api_comex import get_cities, get_exports_by_city
+from utils.api_comex import get_cities_by_state, get_exports_by_city
 
 st.set_page_config(page_title="Dashboard Cidades - ComexStat", layout="wide")
 st.title("📊 Dashboard de Exportações/Importações por Município")
-st.markdown("Visualize dados por cidade usando a API ComexStat.")
 
-# Carregar cidades
+# ---- FILTROS ----
+st.sidebar.header("Filtros")
+
+flow = st.sidebar.radio("Fluxo:", ["export", "import"])
+period_from = st.sidebar.text_input("Período inicial (AAAA-MM):", "2018-01")
+period_to = st.sidebar.text_input("Período final (AAAA-MM):", "2018-12")
+
+# Estados: manualmente ou buscar uma lista de UF disponíveis
+estados = {
+    "SP": 35,
+    "RJ": 33,
+    "MG": 31,
+    "RS": 43,
+    "SC": 42,
+    # adicionar outros estados conforme necessidade
+}
+state_name = st.sidebar.selectbox("Estado:", list(estados.keys()))
+state_code = estados[state_name]
+
+# Cidades dependentes do estado selecionado
 with st.spinner("Carregando cidades..."):
-    cities_df = get_cities()
+    cities_df = get_cities_by_state(state_code, period_from=period_from, period_to=period_to, flow=flow)
 
 if cities_df.empty:
-    st.warning("Não foi possível carregar cidades da API.")
+    st.warning("Nenhuma cidade encontrada para o estado selecionado.")
 else:
-    st.subheader("Debug: colunas do DataFrame de cidades")
-    st.write(cities_df.columns)
-    st.dataframe(cities_df.head())
+    city_name = st.sidebar.selectbox("Cidade:", sorted(cities_df["city"].unique()))
 
-    # Detecta coluna de cidade
-    city_col = "city" if "city" in cities_df.columns else cities_df.columns[0]
-
-    st.subheader("Selecione filtros")
-    city_name = st.selectbox("Cidade:", sorted(cities_df[city_col].unique()))
-    state_code = st.text_input("Código do estado (UF):", value="26")
-    flow = st.radio("Fluxo:", ["export", "import"])
-    period_from = st.text_input("Período inicial (AAAA-MM):", value="2018-01")
-    period_to = st.text_input("Período final (AAAA-MM):", value="2018-12")
-
-    if st.button("Buscar dados"):
-        with st.spinner("Consultando dados da cidade..."):
-            df_city = get_exports_by_city(city_name, int(state_code), flow, period_from, period_to)
-
+    if st.sidebar.button("Buscar dados"):
+        with st.spinner(f"Consultando dados da cidade {city_name}..."):
+            df_city = get_exports_by_city(city_name, state_code, flow, period_from, period_to)
+            
             if df_city.empty:
                 st.warning("Nenhum dado encontrado para os filtros selecionados.")
             else:
-                st.subheader(f"Dados da cidade: {city_name} ({flow})")
+                st.subheader(f"Dados de {city_name} ({flow})")
                 st.dataframe(df_city)
 
-                # Gráfico de exportações/importações por país
-                st.subheader("Gráfico por país")
+                # Gráfico por país
                 chart_data = (
                     df_city.groupby("country")[["metricFOB", "metricKG"]]
                     .sum()
                     .sort_values("metricFOB", ascending=False)
                 )
+                st.subheader("Resumo por país")
                 st.bar_chart(chart_data)
