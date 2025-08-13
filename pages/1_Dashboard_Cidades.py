@@ -31,11 +31,11 @@ with st.spinner(f"Carregando dados de {state_name}..."):
 if df_state.empty:
     st.warning("Nenhum dado encontrado para o estado e período selecionados.")
 else:
-    # Só mostrar cidades se existirem
-    if "city" in df_state.columns and not df_state["city"].dropna().empty:
-        cities = sorted(df_state["city"].dropna().unique())
+    # Só mostrar cidades se existirem na coluna correta
+    if "noMunMinsgUf" in df_state.columns and not df_state["noMunMinsgUf"].dropna().empty:
+        cities = sorted(df_state["noMunMinsgUf"].dropna().unique())
         city_name = st.sidebar.selectbox("Cidade:", cities)
-        df_city = df_state[df_state["city"] == city_name]
+        df_city = df_state[df_state["noMunMinsgUf"] == city_name]
     else:
         st.info("Não há dados de cidades detalhados para o período selecionado.")
         df_city = df_state.copy()
@@ -57,6 +57,3 @@ else:
     st.download_button(
         label="📥 Baixar CSV",
         data=csv,
-        file_name=f"{state_name}_{flow}_{period_from}_to_{period_to}.csv",
-        mime="text/csv"
-    )
