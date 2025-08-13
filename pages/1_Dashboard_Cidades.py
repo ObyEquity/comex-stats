@@ -60,21 +60,23 @@ else:
     st.subheader(f"Dados detalhados ({flow})")
     st.dataframe(df_city)
 
-    # ---- Gráfico por país ----
-    chart_data = (
-        df_city.groupby("country")[["metricFOB_R$mil", "metricKG_mil"]]
-        .sum()
-        .sort_values("metricFOB_R$mil", ascending=False)
-    )
-    st.subheader("Resumo por país (R$ mil / toneladas)")
-    st.bar_chart(chart_data)
+    # ---- Gráfico 1: metricFOB (R$ mil) por país ----
+    chart_fob = df_city.groupby("country")["metricFOB_R$mil"].sum().sort_values(ascending=False) / 1000
+    st.subheader("Resumo metricFOB (R$ mil) por país")
+    st.bar_chart(chart_fob)
+
+    # ---- Gráfico 2: metricKG por país ----
+    chart_kg = df_city.groupby("country")["metricKG_mil"].sum().sort_values(ascending=False)
+    st.subheader("Resumo metricKG por país")
+    st.bar_chart(chart_kg)
 
     # ---- Download CSV ----
     csv = df_city.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="📥 Baixar CSV",
         data=csv,
-        file_name=f"{state_name}_{city_name}_{flow}_{period_from}_{period_to}.csv",
+        file_name=f"{state_name}_{flow}_{period_from}_{period_to}.csv",
         mime='text/csv'
     )
+
 
