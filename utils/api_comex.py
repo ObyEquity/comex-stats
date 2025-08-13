@@ -23,12 +23,14 @@ def get_exports_imports(state_code, flow="export", period_from="2018-01", period
         "details": ["country", "state", "city"],
         "metrics": ["metricFOB", "metricKG"]
     }
-    
+
     r = requests.post(BASE_URL, json=payload, headers=HEADERS, verify=False)
     r.raise_for_status()
     data = r.json()
-    
+
+    # Retornar DataFrame apenas se houver dados
     if "data" in data and isinstance(data["data"], dict) and "list" in data["data"]:
         df = pd.DataFrame(data["data"]["list"])
-        return df
+        if not df.empty:
+            return df
     return pd.DataFrame()
