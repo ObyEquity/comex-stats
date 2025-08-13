@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+import urllib3
 
 BASE_URL = "https://api-comexstat.mdic.gov.br"
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -20,4 +21,5 @@ def get_exports_by_city(city_id, year=None):
     r = requests.get(url, params=params)
     r.raise_for_status()
     return pd.DataFrame(r.json())
+
 
