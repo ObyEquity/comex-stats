@@ -79,4 +79,27 @@ else:
         mime='text/csv'
     )
 
+    # ---- Histórico mensal da cidade ----
+    st.subheader("📈 Histórico mensal da cidade")
+    # Criar filtro opcional por país
+    countries = sorted(df_city["country"].dropna().unique())
+    selected_country = st.multiselect("Filtrar por país (opcional):", countries, default=countries)
+    
+    df_city_filtered = df_city[df_city["country"].isin(selected_country)]
+    
+    # Agrupar por mês/ano
+    df_city_filtered["year_month"] = pd.to_datetime(df_city_filtered["year"].astype(str) + "-" + df_city_filtered.get("month", 1).astype(str))
+    monthly_data = df_city_filtered.groupby("year_month")[["metricFOB", "metricKG"]].sum().sort_index()
+    
+    # Mostrar tabela
+    st.dataframe(monthly_data)
+    
+    # Gráfico metricFOB (R$ mil)
+    st.subheader("Histórico metricFOB (R$ mil)")
+    st.bar_chart(monthly_data["metricFOB"] / 1000)
+    
+    # Gráfico metricKG
+    st.subheader("Histórico metricKG")
+    st.bar_chart(monthly_data["metricKG"])
+
 
