@@ -36,6 +36,10 @@ st.dataframe(df_state.head(10))
 if df_state.empty:
     st.warning("Nenhum dado encontrado para o estado e período selecionados.")
 else:
+    # Converter metricFOB e metricKG para float
+    df_state["metricFOB"] = df_state["metricFOB"].astype(float)
+    df_state["metricKG"] = df_state["metricKG"].astype(float)
+    
     # Filtra cidades se existir
     city_column = "noMunMinsgUf"
     if city_column in df_state.columns and not df_state[city_column].dropna().empty:
@@ -45,11 +49,6 @@ else:
     else:
         st.info("Não há dados de cidades detalhados para o período selecionado.")
         df_city = df_state.copy()
-
-    # ---- Conversão para float e ajuste visual ----
-    for col in ["metricFOB", "metricKG"]:
-        if col in df_city.columns:
-            df_city[col] = pd.to_numeric(df_city[col], errors="coerce")
 
     # Criar colunas formatadas
     if "metricFOB" in df_city.columns:
@@ -78,3 +77,4 @@ else:
         file_name=f"{state_name}_{city_name}_{flow}_{period_from}_{period_to}.csv",
         mime='text/csv'
     )
+
