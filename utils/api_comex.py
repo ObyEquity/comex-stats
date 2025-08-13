@@ -1,71 +1,49 @@
 import requests
-import pandas as pd
 import urllib3
+import pandas as pd
 
-# Base da API ComexStat
-BASE_URL = "https://api-comexstat.mdic.gov.br"
+BASE_URL = "https://api-comexstat.mdic.gov.br/cities"
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+HEADERS = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+}
+
 def get_cities():
-    """
-    Retorna a lista de cidades disponíveis na API do Comex Stat.
-    Como a API exige POST, fazemos uma requisição mínima.
-    """
-    url = f"{BASE_URL}/cities"
-    
+    """Retorna lista de cidades disponíveis na API do Comex Stat."""
+    # Payload genérico para listar cidades por estado ou fluxo
     payload = {
-        "flow": "export",            # ou "import", apenas para listar cidades
+        "flow": "export",
         "monthDetail": False,
-        "period": {"from": "2024-01", "to": "2024-01"},  # período dummy
-        "filters": [],               # sem filtros retorna todas
-        "details": ["state", "city"],
+        "period": {"from": "2018-01", "to": "2018-01"},
+        "filters": [],
+        "details": ["city"],
         "metrics": ["metricFOB"]
     }
-
-    r = requests.post(url, json=payload, verify=False)
+    r = requests.post(BASE_URL, json=payload, headers=HEADERS, verify=False)
     r.raise_for_status()
     data = r.json()
-    
-    # Retorna DataFrame somente com a lista de cidades
-    if "data" in data:
-        return pd.DataFrame(data["data"])
+    if "data" in data and "list" in data["data"]:
+        return pd.DataFrame(data["data"]["list"])
     else:
         return pd.DataFrame()
 
-def get_exports_by_city(city_id, from_period="2024-01", to_period="2024-12", flow="export", month_detail=True, details=None, metrics=None):
-    """
-    Consulta exportações ou importações de uma cidade específica.
-    
-    Parâmetros:
-        city_id (int): Código IBGE da cidade.
-        from_period (str): Data inicial no formato "AAAA-MM".
-        to_period (str): Data final no formato "AAAA-MM".
-        flow (str): "export" ou "import".
-        month_detail (bool): Se True, retorna detalhamento mensal.
-        details (list): Lista de detalhes, ex: ["country", "state", "ncm"].
-        metrics (list): Lista de métricas, ex: ["metricFOB", "metricKG"].
-    """
-    url = f"{BASE_URL}/cities"
-    
-    if details is None:
-        details = ["country", "state"]
-    if metrics is None:
-        metrics = ["metricFOB", "metricKG"]
-    
+def get_exports_by_city(city_name, state_code, flow="export", period_from="2018-01", period_to="2018-12"):
+    """Consulta exportações ou importações de uma cidade específica."""
     payload = {
         "flow": flow,
-        "monthDetail": month_detail,
-        "period": {"from": from_period, "to": to_period},
-        "filters": [{"filter": "city", "values": [city_id]}],
-        "details": details,
-        "metrics": metrics
+        "monthDetail": False,
+        "period": {"from": period_from, "to": period_to},
+        "filters": [{"filter": "state", "values": [state_code]}],
+        "details": ["country", "state", "city"],
+        "metrics": ["metricFOB", "metricKG"]
     }
-    
-    r = requests.post(url, json=payload, verify=False)
+    r = requests.post(BASE_URL, json=payload, headers=HEADERS, verify=False)
     r.raise_for_status()
     data = r.json()
-    
-    if "data" in data:
-        return pd.DataFrame(data["data"])
-    else:
-        return pd.DataFrame()
+    if "data" in data and "list" in data["data"]:
+        df = pd.DataFrame(data["data"]["list"])
+        return df[df["city"] == city_name]
+    return pd.DataFrame()
