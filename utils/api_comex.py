@@ -13,7 +13,6 @@ HEADERS = {
 
 def get_cities():
     """Retorna lista de cidades disponíveis na API do Comex Stat."""
-    # Payload genérico para listar cidades por estado ou fluxo
     payload = {
         "flow": "export",
         "monthDetail": False,
@@ -25,13 +24,13 @@ def get_cities():
     r = requests.post(BASE_URL, json=payload, headers=HEADERS, verify=False)
     r.raise_for_status()
     data = r.json()
-    if "data" in data and "list" in data["data"]:
+    # Checa se 'list' existe
+    if "data" in data and isinstance(data["data"], dict) and "list" in data["data"]:
         return pd.DataFrame(data["data"]["list"])
-    else:
-        return pd.DataFrame()
+    return pd.DataFrame()
 
 def get_exports_by_city(city_name, state_code, flow="export", period_from="2018-01", period_to="2018-12"):
-    """Consulta exportações ou importações de uma cidade específica."""
+    """Consulta exportações/importações de uma cidade específica."""
     payload = {
         "flow": flow,
         "monthDetail": False,
@@ -43,7 +42,8 @@ def get_exports_by_city(city_name, state_code, flow="export", period_from="2018-
     r = requests.post(BASE_URL, json=payload, headers=HEADERS, verify=False)
     r.raise_for_status()
     data = r.json()
-    if "data" in data and "list" in data["data"]:
+    if "data" in data and isinstance(data["data"], dict) and "list" in data["data"]:
         df = pd.DataFrame(data["data"]["list"])
-        return df[df["city"] == city_name]
+        if "city" in df.columns:
+            return df[df["city"] == city_name]
     return pd.DataFrame()
