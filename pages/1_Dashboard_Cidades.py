@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils.api_comex import get_exports_imports  # Certifique-se de ajustar a função se necessário
+from utils.api_comex import get_exports_imports
 
 st.set_page_config(page_title="Dashboard Cidades - ComexStat", layout="wide")
 st.title("📊 Dashboard de Exportações/Importações por Município")
@@ -11,7 +11,7 @@ flow = st.sidebar.radio("Fluxo:", ["export", "import"])
 period_from = st.sidebar.text_input("Período inicial (AAAA-MM):", "2018-01")
 period_to = st.sidebar.text_input("Período final (AAAA-MM):", "2018-12")
 
-# ---- Lista corrigida de estados ----
+# ---- Lista de estados corrigida ----
 estados = {
     "AC": 12, "AL": 27, "AP": 16, "AM": 13, "BA": 32, "CE": 23,
     "DF": 54, "ES": 34, "GO": 53, "MA": 21, "MT": 52, "MS": 55,
@@ -27,7 +27,7 @@ state_code = estados[state_name]
 with st.spinner(f"Carregando dados de {state_name}..."):
     df_state = get_exports_imports(state_code, flow, period_from, period_to)
 
-# ---- DEBUG: mostrar informações do DataFrame ----
+# ---- DEBUG ----
 st.subheader("Debug: Dados brutos do DataFrame")
 st.write("Número de linhas:", len(df_state))
 st.write("Colunas disponíveis:", df_state.columns.tolist())
@@ -36,26 +36,38 @@ st.dataframe(df_state.head(10))
 if df_state.empty:
     st.warning("Nenhum dado encontrado para o estado e período selecionados.")
 else:
-    # Filtra cidades se a coluna existir
-    city_column = "noMunMinsgUf"  # coluna correta retornada pela API
+    # Filtra cidades se existir
+    city_column = "noMunMinsgUf"
     if city_column in df_state.columns and not df_state[city_column].dropna().empty:
         cities = sorted(df_state[city_column].dropna().unique())
         city_name = st.sidebar.selectbox("Cidade:", cities)
-        df_city = df_state[df_state[city_column] == city_name]
+        df_city = df_state[df_state[city_column] == city_name].copy()
     else:
         st.info("Não há dados de cidades detalhados para o período selecionado.")
         df_city = df_state.copy()
 
-    st.subheader(f"Dados ({flow})")
+    # ---- Conversão para float e ajuste visual ----
+    for col in ["metricFOB", "metricKG"]:
+        if col in df_city.columns:
+            df_city[col] = pd.to_numeric(df_city[col], errors="coerce")
+
+    # Criar colunas formatadas
+    if "metricFOB" in df_city.columns:
+        df_city["metricFOB_R$mil"] = df_city["metricFOB"] / 1000
+
+    if "metricKG" in df_city.columns:
+        df_city["metricKG_mil"] = df_city["metricKG"] / 1000
+
+    st.subheader(f"Dados detalhados ({flow})")
     st.dataframe(df_city)
 
     # ---- Gráfico por país ----
     chart_data = (
-        df_city.groupby("country")[["metricFOB", "metricKG"]]
+        df_city.groupby("country")[["metricFOB_R$mil", "metricKG_mil"]]
         .sum()
-        .sort_values("metricFOB", ascending=False)
+        .sort_values("metricFOB_R$mil", ascending=False)
     )
-    st.subheader("Resumo por país")
+    st.subheader("Resumo por país (R$ mil / toneladas)")
     st.bar_chart(chart_data)
 
     # ---- Download CSV ----
@@ -63,6 +75,6 @@ else:
     st.download_button(
         label="📥 Baixar CSV",
         data=csv,
-        file_name=f"{state_name}_{flow}_{period_from}_{period_to}.csv",
+        file_name=f"{state_name}_{city_name}_{flow}_{period_from}_{period_to}.csv",
         mime='text/csv'
     )
