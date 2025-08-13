@@ -12,8 +12,8 @@ st.title("🐞 Debug API ComexStat - Exportações por Município")
 
 # Inputs do usuário
 city_id = st.text_input("Digite o código IBGE do município:", "4208906")
-from_period = st.text_input("Período inicial (AAAA-MM):", "2024-01")
-to_period = st.text_input("Período final (AAAA-MM):", "2024-12")
+from_period = st.text_input("Período inicial (AAAA-MM):", "2023-01")
+to_period = st.text_input("Período final (AAAA-MM):", "2023-12")
 month_detail = st.checkbox("Detalhar por mês?", value=True)
 
 # Botão para depurar
