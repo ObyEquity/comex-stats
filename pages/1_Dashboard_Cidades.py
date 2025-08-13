@@ -34,10 +34,11 @@ st.write("Número de linhas:", len(df_state))
 st.write("Colunas disponíveis:", df_state.columns.tolist())
 st.dataframe(df_state.head(10))
 
+# ---- Verificar se há dados ----
 if df_state.empty:
     st.warning("Nenhum dado encontrado para o estado e período selecionados.")
 else:
-    # Só mostrar cidades se existirem na coluna correta
+    # --- Filtrar cidades se existirem ---
     if "noMunMinsgUf" in df_state.columns and not df_state["noMunMinsgUf"].dropna().empty:
         cities = sorted(df_state["noMunMinsgUf"].dropna().unique())
         city_name = st.sidebar.selectbox("Cidade:", cities)
@@ -49,18 +50,21 @@ else:
     st.subheader(f"Dados ({flow})")
     st.dataframe(df_city)
 
-    # Gráfico por país
-    chart_data = (
-        df_city.groupby("country")[["metricFOB", "metricKG"]]
-        .sum()
-        .sort_values("metricFOB", ascending=False)
-    )
-    st.subheader("Resumo por país")
-    st.bar_chart(chart_data)
+    # --- Gráfico resumido por país ---
+    if "country" in df_city.columns:
+        chart_data = (
+            df_city.groupby("country")[["metricFOB", "metricKG"]]
+            .sum()
+            .sort_values("metricFOB", ascending=False)
+        )
+        st.subheader("Resumo por país")
+        st.bar_chart(chart_data)
 
     # ---- Download CSV ----
     csv = df_city.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="📥 Baixar CSV",
         data=csv,
-
+        file_name=f"comex_{state_name}_{flow}_{period_from}_to_{period_to}.csv",
+        mime="text/csv"
+    )
