@@ -28,6 +28,12 @@ state_code = estados[state_name]
 with st.spinner(f"Carregando dados de {state_name}..."):
     df_state = get_exports_imports(state_code, flow, period_from, period_to)
 
+# --- DEBUG: mostrar informações do DataFrame ---
+st.subheader("Debug: Dados brutos do DataFrame")
+st.write("Número de linhas:", len(df_state))
+st.write("Colunas disponíveis:", df_state.columns.tolist())
+st.dataframe(df_state.head(10))
+
 if df_state.empty:
     st.warning("Nenhum dado encontrado para o estado e período selecionados.")
 else:
@@ -57,3 +63,4 @@ else:
     st.download_button(
         label="📥 Baixar CSV",
         data=csv,
+
