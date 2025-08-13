@@ -25,20 +25,22 @@ state_name = st.sidebar.selectbox("Estado:", list(estados.keys()))
 state_code = estados[state_name]
 
 # ---- Obter dados do estado ----
-with st.spinner("Carregando dados do estado..."):
+with st.spinner(f"Carregando dados de {state_name}..."):
     df_state = get_exports_imports(state_code, flow, period_from, period_to)
 
 if df_state.empty:
     st.warning("Nenhum dado encontrado para o estado e período selecionados.")
 else:
-    # Filtrar cidades disponíveis
-    cities = sorted(df_state["city"].dropna().unique())
-    city_name = st.sidebar.selectbox("Cidade:", cities)
+    # Só mostrar cidades se existirem
+    if "city" in df_state.columns and not df_state["city"].dropna().empty:
+        cities = sorted(df_state["city"].dropna().unique())
+        city_name = st.sidebar.selectbox("Cidade:", cities)
+        df_city = df_state[df_state["city"] == city_name]
+    else:
+        st.info("Não há dados de cidades detalhados para o período selecionado.")
+        df_city = df_state.copy()
 
-    # Filtrar dados da cidade
-    df_city = df_state[df_state["city"] == city_name]
-
-    st.subheader(f"Dados de {city_name} ({flow})")
+    st.subheader(f"Dados ({flow})")
     st.dataframe(df_city)
 
     # Gráfico por país
@@ -49,3 +51,12 @@ else:
     )
     st.subheader("Resumo por país")
     st.bar_chart(chart_data)
+
+    # ---- Download CSV ----
+    csv = df_city.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Baixar CSV",
+        data=csv,
+        file_name=f"{state_name}_{flow}_{period_from}_to_{period_to}.csv",
+        mime="text/csv"
+    )
