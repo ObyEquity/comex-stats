@@ -87,8 +87,8 @@ else:
     
     df_city_filtered = df_city[df_city["country"].isin(selected_country)]
     
-    # Agrupar por mês/ano
-    df_city_filtered["year_month"] = pd.to_datetime(df_city_filtered["year"].astype(str) + "-" + df_city_filtered.get("month", 1).astype(str))
+    months = pd.Series(1, index=df_city_filtered.index)  # todos como mês 1
+    df_city_filtered["year_month"] = pd.to_datetime(df_city_filtered["year"].astype(str) + "-" + months.astype(str))
     monthly_data = df_city_filtered.groupby("year_month")[["metricFOB", "metricKG"]].sum().sort_index()
     
     # Mostrar tabela
@@ -101,5 +101,6 @@ else:
     # Gráfico metricKG
     st.subheader("Histórico metricKG")
     st.bar_chart(monthly_data["metricKG"])
+
 
 
