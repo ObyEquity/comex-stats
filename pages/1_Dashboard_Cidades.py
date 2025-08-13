@@ -1,26 +1,38 @@
 import streamlit as st
+import pandas as pd
 from utils.api_comex import get_cities, get_exports_by_city
 
-st.set_page_config(page_title="Dashboard por Cidade", layout="wide")
-st.title("🏙️ Exportações por Cidade")
+st.set_page_config(page_title="Dashboard Cidades - ComexStat", layout="wide")
+st.title("📊 Dashboard de Exportações/Importações por Município")
+
+st.markdown("Visualize dados de exportação e importação por cidade usando a API ComexStat.")
 
 # Carregar cidades
-cities_df = get_cities()
+with st.spinner("Carregando cidades..."):
+    cities_df = get_cities()
 
-# Seleção de cidade
-city_name = st.selectbox("Selecione a cidade:", cities_df["city"].unique())
-city_id = int(cities_df.loc[cities_df["city"] == city_name, "cityId"].values[0])
-
-# Seleção de período
-from_period = st.text_input("Período inicial (AAAA-MM):", "2024-01")
-to_period = st.text_input("Período final (AAAA-MM):", "2024-12")
-
-# Buscar dados
-st.info("Buscando dados da API...")
-df_exports = get_exports_by_city(city_id, from_period=from_period, to_period=to_period)
-
-if not df_exports.empty:
-    st.subheader(f"Exportações de {city_name} ({from_period} → {to_period})")
-    st.dataframe(df_exports)
+if cities_df.empty:
+    st.warning("Não foi possível carregar as cidades. Verifique a API ou os filtros.")
 else:
-    st.warning("Nenhum dado encontrado para os filtros selecionados.")
+    st.subheader("Selecione a cidade e UF")
+    city_name = st.selectbox("Cidade:", sorted(cities_df["city"].unique()))
+    state_code = st.text_input("Código do estado (UF):", value="26")
+
+    flow = st.radio("Fluxo:", ["export", "import"])
+    period_from = st.text_input("Período inicial (AAAA-MM):", value="2018-01")
+    period_to = st.text_input("Período final (AAAA-MM):", value="2018-12")
+
+    if st.button("Buscar dados"):
+        with st.spinner("Consultando dados da cidade..."):
+            df_city = get_exports_by_city(city_name, int(state_code), flow, period_from, period_to)
+
+            if df_city.empty:
+                st.warning("Nenhum dado encontrado para os filtros selecionados.")
+            else:
+                st.subheader(f"Dados da cidade: {city_name} ({flow})")
+                st.dataframe(df_city)
+
+                # Gráfico de exportações por país
+                st.subheader("Gráfico por país")
+                chart_data = df_city.groupby("country")[["metricFOB", "metricKG"]].sum().sort_values("metricFOB", ascending=False)
+                st.bar_chart(chart_data)
